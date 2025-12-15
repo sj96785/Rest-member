@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>休假名單產生器</title>
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icon-192.png" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#101a2f;
+      --panel2:#0e1730;
+      --text:#e9eefc;
+      --muted:#a9b4d6;
+      --line:#1f2a47;
+      --green:#16a34a;
+      --red:#ef4444;
+      --blue:#2563eb;
+      --shadow: 0 10px 25px rgba(0,0,0,.25);
+      --radius: 16px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Text", "Segoe UI", "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+      color:var(--text);
+      background: radial-gradient(1200px 900px at 20% -10%, #1b2a55 0%, rgba(27,42,85,0) 55%),
+                  radial-gradient(900px 700px at 110% 10%, #163a7a 0%, rgba(22,58,122,0) 50%),
+                  var(--bg);
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:18px 14px 28px}
+    header{
+      display:flex; gap:12px; align-items:flex-start; justify-content:space-between; flex-wrap:wrap;
+      margin-bottom:14px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:6px;
+    }
+    .title h1{font-size:20px; margin:0; letter-spacing:.5px}
+    .title .sub{color:var(--muted); font-size:13px; line-height:1.3}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow: var(--shadow);
+      padding:14px;
+    }
+    .toolbar{
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    label{font-size:12px; color:var(--muted)}
+    input[type="date"]{
+      background:var(--panel);
+      border:1px solid var(--line);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      font-size:14px;
+    }
+    .btn{
+      appearance:none; border:1px solid var(--line);
+      background:var(--panel);
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:700;
+      cursor:pointer;
+      transition: transform .06s ease, filter .2s ease, background .2s ease;
+      user-select:none;
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn.blue{background:rgba(37,99,235,.15); border-color:rgba(37,99,235,.35)}
+    .btn.blue:hover{filter:brightness(1.1)}
+    .btn.ghost{background:transparent}
+    .pill{
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+
+    main{display:grid; grid-template-columns: 1.1fr .9fr; gap:12px}
+    @media (max-width: 980px){ main{grid-template-columns: 1fr} }
+
+    .sectionTitle{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px; margin:6px 0 10px;
+    }
+    .sectionTitle h2{font-size:14px; margin:0; color:var(--muted); font-weight:800; letter-spacing:.4px}
+    .grid{
+      align-items:stretch;
+    }
+    .sep{
+      grid-column: 1 / -1;
+      height: 1px;
+      background: var(--line);
+      border-radius: 999px;
+      opacity: .9;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:10px;
+    }
+    @media (max-width: 540px){ .grid{
+      align-items:stretch;
+    }
+    .sep{
+      grid-column: 1 / -1;
+      height: 1px;
+      background: var(--line);
+      border-radius: 999px;
+      opacity: .9;
+    }
+
+    .grid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
+
+    .nameBtn{
+      width:100%;
+      border-radius:14px;
+      padding:12px 10px;
+      border:1px solid rgba(255,255,255,.10);
+      font-weight:900;
+      letter-spacing:.8px;
+      cursor:pointer;
+      background: rgba(22,163,74,.16);
+      border-color: rgba(22,163,74,.40);
+      color: #eafff0;
+      transition: transform .06s ease, filter .2s ease, background .2s ease, border-color .2s ease;
+    }
+    .nameBtn:hover{filter:brightness(1.08)}
+    .nameBtn:active{transform:translateY(1px)}
+    .nameBtn.off{
+      background: rgba(239,68,68,.16);
+      border-color: rgba(239,68,68,.45);
+      color: #ffecec;
+    }
+
+    .divider{height:1px;background:var(--line);margin:12px 0}
+    textarea{
+      width:100%;
+      min-height: 230px;
+      resize: vertical;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: rgba(16,26,47,.55);
+      color:var(--text);
+      padding:12px;
+      font-size:13px;
+      line-height:1.5;
+      outline:none;
+    }
+    .hint{color:var(--muted); font-size:12px; line-height:1.4}
+    .small{font-size:12px;color:var(--muted)}
+    .countBox{
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      padding:10px 12px;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      margin-top:10px;
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <header>
+    <div class="title">
+      <h1>休假名單產生器</h1>
+      <div class="sub">點選姓名切換「上班(綠) / 休假(紅)」。輪動名單會依日期自動輪動（以 2025-12-15 為基準）。</div>
+    </div>
+
+    <div class="toolbar card">
+      <div class="row">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label>日期（自動輪動）</label>
+          <input id="dateInput" type="date" />
+        </div>
+
+        <div class="pill" id="rocInfo">民國 - 年 - 月 - 日</div>
+
+        <button class="btn ghost" id="todayBtn" type="button">今天</button>
+        <button class="btn" id="resetBtn" type="button">清空今日選取</button>
+        <button class="btn blue" id="installBtn" type="button" style="display:none">安裝到主畫面</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="grid" id="rosterGrid"></div>
+
+      <div class="countBox">
+        <div class="hint"><b>提示：</b>點選後會自動保存（同一天同一裝置）。</div>
+        <div class="pill" id="countPill">已選取 0 人</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn blue" id="genBtn" type="button">產生敘述</button>
+        <button class="btn" id="copyBtn" type="button">複製</button>
+        <button class="btn" id="shareBtn" type="button">分享</button>
+      </div>
+
+      <textarea id="outText" placeholder="按「產生敘述」後會出現在這裡"></textarea>
+      <div class="hint" id="status" style="margin-top:10px"></div>
+    </section>
+  </main>
+
+  <div class="small" style="margin-top:10px;opacity:.85">
+    離線：安裝後可離線使用（需以 HTTPS 或 localhost 提供檔案，才能啟用 Service Worker）。
+  </div>
+</div>
+
+<script>
+(() => {
+  const BASE_DATE_ISO = "2025-12-15"; // 114/12/15 的大輪番順序基準日
+
+  const cadre = [
+    { group:"幹部", name:"黃盟樹", title:"所長", id:"71" },
+    { group:"幹部", name:"邱集田", title:"副所長", id:"73" },
+    { group:"幹部", name:"許允騰", title:"巡佐", id:"74" },
+    { group:"幹部", name:"黃耀徵", title:"副所長", id:"75" },
+    { group:"幹部", name:"羅本吉", title:"巡佐", id:"76" },
+  ];
+
+  const bigBase = [
+    { group:"大輪番", name:"蔡宗廷", title:"警員", no:1 },
+    { group:"大輪番", name:"劉琇如", title:"警員", no:2 },
+    { group:"大輪番", name:"楊詠順", title:"警員", no:3 },
+    { group:"大輪番", name:"詹超評", title:"警員", no:4 },
+    { group:"大輪番", name:"王鈞立", title:"警員", no:5 },
+    { group:"大輪番", name:"王翊澄", title:"警員", no:6 },
+    { group:"大輪番", name:"丁新憶", title:"警員", no:7 },
+    { group:"大輪番", name:"黃釋賢", title:"警員", no:8 },
+    { group:"大輪番", name:"褚克強", title:"警員", no:9 },
+    { group:"大輪番", name:"蔡政憲", title:"警員", no:10 },
+    { group:"大輪番", name:"林莙珊", title:"警員", no:11 },
+    { group:"大輪番", name:"歐冠甫", title:"警員", no:12 },
+    { group:"大輪番", name:"蘇裕欽", title:"警員", no:13 },
+    { group:"大輪番", name:"薛振吉", title:"警員", no:14 },
+    { group:"大輪番", name:"黃淑君", title:"警員", no:15 },
+    { group:"大輪番", name:"林念承", title:"警員", no:16 },
+    { group:"大輪番", name:"蘇暐智", title:"警員", no:17 },
+    { group:"大輪番", name:"賴家倫", title:"警員", no:18 },
+    { group:"大輪番", name:"曾文益", title:"警員", no:19 },
+    { group:"大輪番", name:"高玉珊", title:"警員", no:20 },
+  ];
+
+  const fixed = [
+    { group:"固定番", name:"巫駿昱", title:"警員", no:21 },
+    { group:"固定番", name:"徐廷翰", title:"警員", no:22 },
+    { group:"固定番", name:"陳欣維", title:"警員", no:23 },
+    { group:"固定番", name:"李承遠", title:"警員", no:24 },
+    { group:"固定番", name:"陳子翔", title:"警員", no:25 },
+    { group:"固定番", name:"黃琮瑄", title:"警員", no:26 },
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const dateInput = $("dateInput");
+  const rocInfo = $("rocInfo");
+  const countPill = $("countPill");
+  const status = $("status");
+  const outText = $("outText");
+
+  const rosterGrid = $("rosterGrid");
+
+  let rosterByDay = [];  // 今日顯示順序（幹部 + 大輪番(輪動) + 固定番）
+  let selected = new Set(); // 今日休假（用 name 當 key）
+
+  // ---------- 日期/輪動 ----------
+  function toLocalMidnight(d){
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+  function parseISODate(iso){
+    const [y,m,dd] = iso.split("-").map(Number);
+    return new Date(y, m-1, dd);
+  }
+  function diffDays(a, b){
+    // a - b (以當地午夜計算)
+    const aa = toLocalMidnight(a).getTime();
+    const bb = toLocalMidnight(b).getTime();
+    return Math.round((aa - bb) / 86400000);
+  }
+  function rotateRight(arr, k){
+    const n = arr.length;
+    if(!n) return arr.slice();
+    const r = ((k % n) + n) % n;
+    if(r === 0) return arr.slice();
+    return arr.slice(n - r).concat(arr.slice(0, n - r));
+  }
+  function rocString(d){
+    const rocY = d.getFullYear() - 1911;
+    const mm = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `民國 ${rocY} 年 ${mm} 月 ${dd} 日`;
+  }
+  function keyOfDate(d){
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const dd = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${dd}`;
+  }
+
+  function computeRosterFor(dateObj){
+    const base = parseISODate(BASE_DATE_ISO);
+    const shift = diffDays(dateObj, base);
+    const rotatedBig = rotateRight(bigBase, shift);
+    // 今日顯示順序：幹部固定在最前 → 大輪番(輪動後) → 固定番固定在最後
+    return [...cadre, ...rotatedBig, ...fixed];
+  }
+
+  // ---------- 保存/載入 ----------
+  function storageKey(d){ return `leavePWA:selected:${keyOfDate(d)}`; }
+  function saveSelection(d){
+    try{
+      localStorage.setItem(storageKey(d), JSON.stringify([...selected]));
+    }catch(e){}
+  }
+  function loadSelection(d){
+    selected = new Set();
+    try{
+      const raw = localStorage.getItem(storageKey(d));
+      if(raw){
+        const arr = JSON.parse(raw);
+        if(Array.isArray(arr)) arr.forEach(n => selected.add(String(n)));
+      }
+    }catch(e){}
+  }
+
+  // ---------- UI ----------
+  function mkNameBtn(person){
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "nameBtn";
+    btn.textContent = person.name; // 按鈕只顯示姓名
+    btn.dataset.name = person.name;
+    btn.dataset.title = person.title;
+    btn.dataset.group = person.group;
+
+    const refresh = () => {
+      if(selected.has(person.name)) btn.classList.add("off");
+      else btn.classList.remove("off");
+    };
+
+    btn.addEventListener("click", () => {
+      if(selected.has(person.name)) selected.delete(person.name);
+      else selected.add(person.name);
+      refresh();
+      updateCount();
+      saveSelection(getSelectedDate());
+    });
+
+    refresh();
+    return btn;
+  }
+
+  function render(){
+    rosterGrid.innerHTML = "";
+
+    let lastGroup = null;
+    for(const p of rosterByDay){
+      if(lastGroup !== null && p.group !== lastGroup){
+        const sep = document.createElement("div");
+        sep.className = "sep";
+        rosterGrid.appendChild(sep);
+      }
+      const btn = mkNameBtn(p);
+      rosterGrid.appendChild(btn);
+      lastGroup = p.group;
+    }
+    updateCount();
+  }
+
+  function updateCount(){
+    countPill.textContent = `已選取 ${selected.size} 人`;
+  }
+
+  // ---------- 文字生成 ----------
+  const tailText =
+`電話或line提醒叮嚀切勿酒後駕車，本所同仁切勿酒後駕車，喝酒不開車，酒後駕車害人害己，得不償失。
+★員警酒駕勤中、勤餘均『記一大過』。
+★酒駕二犯者，『免職』！請同仁們引以為惕，愛惜羽毛。
+*宣導同仁要有「防禦性駕駛」觀念及「不追車原則」。
+★同仁臨檢盤查時，嚴禁將頭、手伸入車內，如違反規定造成受傷將議處分局長，請同仁務必確保執勤安全，並落實三安要求。`;
+
+  function selectedOrdered(){
+    const set = selected;
+    return rosterByDay.filter(p => set.has(p.name));
+  }
+
+  function formatList(items){
+    // 依顯示順序，同樣職稱只出現一次（第一次出現帶職稱，其餘只列姓名）
+    const parts = [];
+    const used = new Set();
+    for(const p of items){
+      if(!used.has(p.title)){
+        parts.push(`${p.title}${p.name}`);
+        used.add(p.title);
+      }else{
+        parts.push(p.name);
+      }
+    }
+    return parts.join("、");
+  }
+
+  function generateText(){
+    const d = getSelectedDate();
+    const day = d.getDate();
+    const items = selectedOrdered();
+    const n = items.length;
+
+    if(n === 0){
+      return `大社所報告: 本所（${day}）日無輪補休假人員，仍${tailText}`;
+    }
+
+    const list = formatList(items);
+    const head = n === 1
+      ? `大社所報告: 本所（${day}）日輪補休假人員：${list}計1人`
+      : `大社所報告: 本所（${day}）日輪補休假人員：${list}等${n}人`;
+
+    return `${head}${tailText}`;
+  }
+
+  // ---------- 事件 ----------
+  function getSelectedDate(){
+    // dateInput.value 是 ISO yyyy-mm-dd
+    const iso = dateInput.value || keyOfDate(new Date());
+    return parseISODate(iso);
+  }
+
+  function setDate(d){
+    dateInput.value = keyOfDate(d);
+  }
+
+  function onDateChanged(){
+    const d = getSelectedDate();
+    rocInfo.textContent = rocString(d);
+
+    rosterByDay = computeRosterFor(d);
+    loadSelection(d);
+    render();
+    status.textContent = "";
+    outText.value = "";
+  }
+
+  $("genBtn").addEventListener("click", () => {
+    outText.value = generateText();
+    status.textContent = "已產生敘述。";
+  });
+
+  $("copyBtn").addEventListener("click", async () => {
+    const text = outText.value.trim();
+    if(!text){
+      status.textContent = "尚未產生敘述。";
+      return;
+    }
+    try{
+      await navigator.clipboard.writeText(text);
+      status.textContent = "已複製到剪貼簿。";
+    }catch(e){
+      // fallback
+      outText.focus();
+      outText.select();
+      document.execCommand("copy");
+      status.textContent = "已嘗試複製（若未成功，請手動複製）。";
+    }
+  });
+
+  $("shareBtn").addEventListener("click", async () => {
+    const text = outText.value.trim();
+    if(!text){
+      status.textContent = "尚未產生敘述。";
+      return;
+    }
+    if(navigator.share){
+      try{
+        await navigator.share({ text, title:"休假名單" });
+        status.textContent = "已開啟分享。";
+      }catch(e){
+        status.textContent = "已取消分享。";
+      }
+    }else{
+      status.textContent = "此裝置不支援分享，請改用複製。";
+    }
+  });
+
+  $("todayBtn").addEventListener("click", () => {
+    setDate(new Date());
+    onDateChanged();
+  });
+
+  $("resetBtn").addEventListener("click", () => {
+    selected = new Set();
+    render();
+    saveSelection(getSelectedDate());
+    status.textContent = "已清空今日選取。";
+    outText.value = "";
+  });
+
+  dateInput.addEventListener("change", onDateChanged);
+
+  // ---------- PWA 安裝 ----------
+  let deferredPrompt = null;
+  const installBtn = $("installBtn");
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = "";
+  });
+
+  installBtn.addEventListener("click", async () => {
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    try{
+      await deferredPrompt.userChoice;
+    }catch(e){}
+    deferredPrompt = null;
+    installBtn.style.display = "none";
+  });
+
+  // ---------- Service Worker ----------
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./sw.js").catch(() => {});
+    });
+  }
+
+  // init
+  setDate(new Date());
+  onDateChanged();
+})();
+</script>
+</body>
+</html>
