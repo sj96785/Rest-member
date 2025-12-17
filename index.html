@@ -99,33 +99,11 @@
     }
     .sectionTitle h2{font-size:14px; margin:0; color:var(--muted); font-weight:800; letter-spacing:.4px}
     .grid{
-      align-items:stretch;
-    }
-    .sep{
-      grid-column: 1 / -1;
-      height: 1px;
-      background: var(--line);
-      border-radius: 999px;
-      opacity: .9;
-    }
-
-    .grid{
       display:grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap:10px;
     }
-    @media (max-width: 540px){ .grid{
-      align-items:stretch;
-    }
-    .sep{
-      grid-column: 1 / -1;
-      height: 1px;
-      background: var(--line);
-      border-radius: 999px;
-      opacity: .9;
-    }
-
-    .grid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
+    @media (max-width: 540px){ .grid{grid-template-columns: repeat(2, minmax(0, 1fr));} }
 
     .nameBtn{
       width:100%;
@@ -180,7 +158,7 @@
   <header>
     <div class="title">
       <h1>休假名單產生器</h1>
-      <div class="sub">點選姓名切換「上班(綠) / 休假(紅)」。輪動名單會依日期自動輪動（以 2025-12-15 為基準）。</div>
+      <div class="sub">點選姓名切換「上班(綠) / 休假(紅)」。大輪番會依日期自動輪動（以 2025-12-15 為基準）。</div>
     </div>
 
     <div class="toolbar card">
@@ -201,7 +179,27 @@
 
   <main>
     <section class="card">
-      <div class="grid" id="rosterGrid"></div>
+      <div class="sectionTitle">
+        <h2>幹部</h2>
+        <span class="small">固定排序</span>
+      </div>
+      <div class="grid" id="cadreGrid"></div>
+
+      <div class="divider"></div>
+
+      <div class="sectionTitle">
+        <h2>大輪番</h2>
+        <span class="small">每日輪動</span>
+      </div>
+      <div class="grid" id="bigGrid"></div>
+
+      <div class="divider"></div>
+
+      <div class="sectionTitle">
+        <h2>固定番</h2>
+        <span class="small">固定排序</span>
+      </div>
+      <div class="grid" id="fixedGrid"></div>
 
       <div class="countBox">
         <div class="hint"><b>提示：</b>點選後會自動保存（同一天同一裝置）。</div>
@@ -210,6 +208,11 @@
     </section>
 
     <section class="card">
+      <div class="sectionTitle">
+        <h2>文字敘述</h2>
+        <span class="small">可直接複製/分享</span>
+      </div>
+
       <div class="row" style="margin-bottom:10px">
         <button class="btn blue" id="genBtn" type="button">產生敘述</button>
         <button class="btn" id="copyBtn" type="button">複製</button>
@@ -277,7 +280,9 @@
   const status = $("status");
   const outText = $("outText");
 
-  const rosterGrid = $("rosterGrid");
+  const cadreGrid = $("cadreGrid");
+  const bigGrid = $("bigGrid");
+  const fixedGrid = $("fixedGrid");
 
   let rosterByDay = [];  // 今日顯示順序（幹部 + 大輪番(輪動) + 固定番）
   let selected = new Set(); // 今日休假（用 name 當 key）
@@ -370,18 +375,15 @@
   }
 
   function render(){
-    rosterGrid.innerHTML = "";
+    cadreGrid.innerHTML = "";
+    bigGrid.innerHTML = "";
+    fixedGrid.innerHTML = "";
 
-    let lastGroup = null;
     for(const p of rosterByDay){
-      if(lastGroup !== null && p.group !== lastGroup){
-        const sep = document.createElement("div");
-        sep.className = "sep";
-        rosterGrid.appendChild(sep);
-      }
       const btn = mkNameBtn(p);
-      rosterGrid.appendChild(btn);
-      lastGroup = p.group;
+      if(p.group === "幹部") cadreGrid.appendChild(btn);
+      else if(p.group === "大輪番") bigGrid.appendChild(btn);
+      else fixedGrid.appendChild(btn);
     }
     updateCount();
   }
@@ -400,17 +402,34 @@
 
   function selectedOrdered(){
     const set = selected;
-    return rosterByDay.filter(p => set.has(p.name));
+    const items = rosterByDay.filter(p => set.has(p.name));
+
+    // 若幹部全部都有休假：輸出順序改為「所長 → 副所長 → 巡佐」，其餘維持原顯示順序
+    const cadreItems = items.filter(p => p.group === "幹部");
+    const others = items.filter(p => p.group !== "幹部");
+
+    if(cadreItems.length === cadre.length){
+      const pri = {"所長":0, "副所長":1, "巡佐":2, "警員":3};
+      const index = new Map(rosterByDay.map((p,i)=>[p.name,i]));
+      cadreItems.sort((a,b)=>{
+        const pa = (a.title in pri) ? pri[a.title] : 99;
+        const pb = (b.title in pri) ? pri[b.title] : 99;
+        if(pa !== pb) return pa - pb;
+        return (index.get(a.name) ?? 0) - (index.get(b.name) ?? 0);
+      });
+      return [...cadreItems, ...others];
+    }
+    return items;
   }
 
-  function formatList(items){
-    // 依顯示順序，同樣職稱只出現一次（第一次出現帶職稱，其餘只列姓名）
+function formatList(items){
+    // 依顯示順序，遇到相同職稱連續時，僅第一個帶職稱
     const parts = [];
-    const used = new Set();
+    let lastTitle = null;
     for(const p of items){
-      if(!used.has(p.title)){
+      if(p.title !== lastTitle){
         parts.push(`${p.title}${p.name}`);
-        used.add(p.title);
+        lastTitle = p.title;
       }else{
         parts.push(p.name);
       }
